@@ -44,21 +44,25 @@ CREATE TABLE `Session` (
 
 -- CreateTable
 CREATE TABLE `VerificationToken` (
+    `id` VARCHAR(191) NOT NULL,
     `identifier` VARCHAR(191) NOT NULL,
     `token` VARCHAR(191) NOT NULL,
     `expires` DATETIME(3) NOT NULL,
 
     UNIQUE INDEX `VerificationToken_token_key`(`token`),
-    UNIQUE INDEX `VerificationToken_identifier_token_key`(`identifier`, `token`)
+    UNIQUE INDEX `VerificationToken_identifier_token_key`(`identifier`, `token`),
+    PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `Customer` (
     `id` VARCHAR(191) NOT NULL,
-    `email` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
-    `phone` VARCHAR(191) NULL,
-    `address` VARCHAR(191) NULL,
+    `email` VARCHAR(191) NOT NULL,
+    `country` VARCHAR(191) NOT NULL,
+    `totalSpent` DOUBLE NOT NULL DEFAULT 0,
+    `lastVisit` DATETIME(3) NULL,
+    `visitCount` INTEGER NOT NULL DEFAULT 0,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -71,11 +75,26 @@ CREATE TABLE `Order` (
     `id` VARCHAR(191) NOT NULL,
     `customerId` VARCHAR(191) NOT NULL,
     `amount` DOUBLE NOT NULL,
-    `status` VARCHAR(191) NOT NULL,
-    `items` JSON NOT NULL,
+    `currency` CHAR(3) NOT NULL,
+    `status` ENUM('PENDING', 'COMPLETED', 'CANCELLED', 'REFUNDED') NOT NULL DEFAULT 'PENDING',
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
+    INDEX `Order_customerId_idx`(`customerId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `OrderItem` (
+    `id` VARCHAR(191) NOT NULL,
+    `orderId` VARCHAR(191) NOT NULL,
+    `productId` VARCHAR(191) NOT NULL,
+    `quantity` INTEGER NOT NULL,
+    `price` DOUBLE NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `OrderItem_orderId_idx`(`orderId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -89,6 +108,14 @@ CREATE TABLE `Segment` (
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `CustomerToSegment` (
+    `customerId` VARCHAR(191) NOT NULL,
+    `segmentId` VARCHAR(191) NOT NULL,
+
+    PRIMARY KEY (`customerId`, `segmentId`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
@@ -122,15 +149,6 @@ CREATE TABLE `Message` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
-CREATE TABLE `_CustomerToSegment` (
-    `A` VARCHAR(191) NOT NULL,
-    `B` VARCHAR(191) NOT NULL,
-
-    UNIQUE INDEX `_CustomerToSegment_AB_unique`(`A`, `B`),
-    INDEX `_CustomerToSegment_B_index`(`B`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
 -- AddForeignKey
 ALTER TABLE `Account` ADD CONSTRAINT `Account_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -141,6 +159,15 @@ ALTER TABLE `Session` ADD CONSTRAINT `Session_userId_fkey` FOREIGN KEY (`userId`
 ALTER TABLE `Order` ADD CONSTRAINT `Order_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `Customer`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `OrderItem` ADD CONSTRAINT `OrderItem_orderId_fkey` FOREIGN KEY (`orderId`) REFERENCES `Order`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `CustomerToSegment` ADD CONSTRAINT `CustomerToSegment_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `Customer`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `CustomerToSegment` ADD CONSTRAINT `CustomerToSegment_segmentId_fkey` FOREIGN KEY (`segmentId`) REFERENCES `Segment`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `Campaign` ADD CONSTRAINT `Campaign_segmentId_fkey` FOREIGN KEY (`segmentId`) REFERENCES `Segment`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -148,9 +175,3 @@ ALTER TABLE `Campaign` ADD CONSTRAINT `Campaign_userId_fkey` FOREIGN KEY (`userI
 
 -- AddForeignKey
 ALTER TABLE `Message` ADD CONSTRAINT `Message_campaignId_fkey` FOREIGN KEY (`campaignId`) REFERENCES `Campaign`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `_CustomerToSegment` ADD CONSTRAINT `_CustomerToSegment_A_fkey` FOREIGN KEY (`A`) REFERENCES `Customer`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `_CustomerToSegment` ADD CONSTRAINT `_CustomerToSegment_B_fkey` FOREIGN KEY (`B`) REFERENCES `Segment`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

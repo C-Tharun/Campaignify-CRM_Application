@@ -51,6 +51,7 @@ model Session {
 }
 
 model VerificationToken {
+  id         String   @id @default(cuid())
   identifier String
   token      String   @unique
   expires    DateTime
@@ -67,7 +68,7 @@ model Customer {
   lastVisit  DateTime?
   visitCount Int       @default(0)
   orders     Order[]
-  segments   Segment[]
+  customerToSegments CustomerToSegment[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 }
@@ -104,10 +105,18 @@ model Segment {
   name        String
   description String?
   rules       Json
-  customers   Customer[]
+  customerToSegments CustomerToSegment[]
   campaigns   Campaign[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+}
+
+model CustomerToSegment {
+  customerId String
+  segmentId String
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  segment Segment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  @@id([customerId, segmentId])
 }
 
 model Campaign {
