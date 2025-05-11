@@ -1,11 +1,8 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
-import { PrismaClient } from "@prisma/client";
 import { CampaignService } from "@/lib/campaignService";
 import CampaignActions from "@/components/CampaignActions";
 import CampaignStats from "@/components/CampaignStats";
-
-const prisma = new PrismaClient();
 
 export default async function CampaignDetailsPage({
   params,
@@ -18,18 +15,12 @@ export default async function CampaignDetailsPage({
     redirect("/auth/signin");
   }
 
-  const campaign = await prisma.campaign.findUnique({
-    where: { id: params.id },
-    include: {
-      segment: true,
-    },
-  });
+  // Use CampaignService to get campaign and stats (with segment customers included)
+  const { campaign, stats } = await CampaignService.getCampaignStats(params.id);
 
   if (!campaign) {
     redirect("/dashboard/campaigns");
   }
-
-  const stats = await CampaignService.getCampaignStats(params.id);
 
   return (
     <div className="min-h-screen bg-gray-100">

@@ -15,11 +15,49 @@ export default async function CampaignsPage() {
   const campaigns = await prisma.campaign.findMany({
     include: {
       segment: true,
+      messages: true,
     },
     orderBy: {
       createdAt: "desc",
     },
   });
+
+  // For each campaign, compute audience size and message stats
+  const campaignStats = await Promise.all(
+    campaigns.map(async (campaign) => {
+      // Dynamic audience size based on segment rules
+      let customerWhere: any = null;
+      const rules = campaign.segment.rules as any;
+      if (rules && Object.keys(rules).length > 0) {
+        customerWhere = {};
+        if (rules.name) {
+          customerWhere.name = { contains: rules.name };
+        }
+        if (rules.country) {
+          customerWhere.country = rules.country;
+        }
+        if (rules.max_visits !== undefined) {
+          customerWhere.visits = { lte: rules.max_visits };
+        }
+        if (rules.min_total_spent !== undefined) {
+          customerWhere.total_spent = { gte: rules.min_total_spent };
+        }
+        if (rules.min_days_inactive !== undefined) {
+          const minInactiveDate = new Date();
+          minInactiveDate.setDate(minInactiveDate.getDate() - rules.min_days_inactive);
+          customerWhere.last_active = { lte: minInactiveDate };
+        }
+      }
+      let audienceSize = 0;
+      if (customerWhere) {
+        audienceSize = await prisma.customer.count({ where: customerWhere });
+      }
+      // Message stats
+      const sent = campaign.messages.filter((m) => m.status === "SENT" || m.status === "DELIVERED").length;
+      const failed = campaign.messages.filter((m) => m.status === "FAILED").length;
+      return { audienceSize, sent, failed };
+    })
+  );
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -33,7 +71,7 @@ export default async function CampaignsPage() {
             </div>
             <div className="mt-4 flex md:mt-0 md:ml-4">
               <Link
-                href="/dashboard/campaigns/new"
+                href="/dashboard/campaigns/create"
                 className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Create Campaign
@@ -58,6 +96,12 @@ export default async function CampaignsPage() {
                           scope="col"
                           className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
                         >
+                          Description
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                        >
                           Status
                         </th>
                         <th
@@ -65,6 +109,24 @@ export default async function CampaignsPage() {
                           className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
                         >
                           Segment
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                        >
+                          Audience Size
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                        >
+                          Sent
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                        >
+                          Failed
                         </th>
                         <th
                           scope="col"
@@ -81,10 +143,13 @@ export default async function CampaignsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
-                      {campaigns.map((campaign) => (
+                      {campaigns.map((campaign, idx) => (
                         <tr key={campaign.id}>
                           <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                             {campaign.name}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {campaign.description || "-"}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                             <span
@@ -105,6 +170,15 @@ export default async function CampaignsPage() {
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                             {campaign.segment.name}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {campaignStats[idx].audienceSize}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {campaignStats[idx].sent}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {campaignStats[idx].failed}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                             {new Date(campaign.createdAt).toLocaleDateString()}

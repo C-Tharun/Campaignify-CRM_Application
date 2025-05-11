@@ -1,12 +1,10 @@
-import { PrismaClient, MessageStatus } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
+import { MessageStatus } from "@prisma/client";
 
 interface MessageData {
   campaignId: string;
   customerId: string;
   content: string;
-  type: "EMAIL" | "SMS";
 }
 
 export class MessageService {
@@ -18,7 +16,6 @@ export class MessageService {
           campaignId: data.campaignId,
           customerId: data.customerId,
           content: data.content,
-          type: data.type,
           status: MessageStatus.PENDING,
         },
       });
@@ -65,15 +62,6 @@ export class MessageService {
   static async getCampaignMessages(campaignId: string) {
     return prisma.message.findMany({
       where: { campaignId },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
       orderBy: { createdAt: "desc" },
     });
   }

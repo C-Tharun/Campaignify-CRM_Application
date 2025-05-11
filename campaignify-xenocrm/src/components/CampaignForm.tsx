@@ -27,7 +27,7 @@ export default function CampaignForm({ segments, initialData }: CampaignFormProp
     name: initialData?.name || "",
     description: initialData?.description || "",
     segmentId: initialData?.segmentId || "",
-    status: initialData?.status || "draft",
+    status: initialData?.status || "DRAFT",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

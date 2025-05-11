@@ -54,6 +54,8 @@ export async function POST(request: Request) {
               name: record.name || existingCustomer.name,
               phone: record.phone || existingCustomer.phone,
               address: record.address || existingCustomer.address,
+              last_active: record.last_purchase_date ? new Date(record.last_purchase_date) : existingCustomer.last_active,
+              total_spent: record.total_spent ? parseFloat(record.total_spent) : existingCustomer.total_spent,
             },
           });
           results.updated++;
@@ -65,6 +67,8 @@ export async function POST(request: Request) {
               name: record.name || "",
               phone: record.phone || "",
               address: record.address || "",
+              last_active: record.last_purchase_date ? new Date(record.last_purchase_date) : null,
+              total_spent: record.total_spent ? parseFloat(record.total_spent) : null,
             },
           });
           results.created++;

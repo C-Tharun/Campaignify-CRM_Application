@@ -59,15 +59,19 @@ model VerificationToken {
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  phone     String?
-  address   String?
-  orders    Order[]
-  segments  Segment[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  phone       String?
+  address     String?
+  country     String?
+  visits      Int?
+  last_active DateTime?
+  total_spent Float?
+  orders      Order[]
+  segments    Segment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Order {

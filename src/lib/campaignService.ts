@@ -76,39 +76,43 @@ export class CampaignService {
               },
             },
           },
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
         },
       }),
-      MessageService.getMessageStats(campaignId),
+      prisma.message.groupBy({
+        by: ["status"],
+        where: { campaignId },
+        _count: true,
+      }),
     ]);
 
     if (!campaign) {
       throw new Error("Campaign not found");
     }
 
-    return {
-      campaign,
-      stats: {
-        totalCustomers: campaign.segment._count.customers,
-        ...messageStats,
-      },
+    // Calculate message stats
+    const stats = {
+      total: messageStats.reduce((acc, curr) => acc + curr._count, 0),
+      delivered: messageStats.find((s) => s.status === "DELIVERED")?._count || 0,
+      failed: messageStats.find((s) => s.status === "FAILED")?._count || 0,
+      pending: messageStats.find((s) => s.status === "PENDING")?._count || 0,
+      totalCustomers: campaign.segment._count.customers,
     };
-  }
 
-  static async scheduleCampaign(campaignId: string, scheduledFor: Date) {
-    // TODO: Implement scheduling logic if needed. Currently, this is a placeholder.
-    const campaign = await prisma.campaign.update({
-      where: { id: campaignId },
-      data: {
-        status: CampaignStatus.SCHEDULED,
-        // scheduledFor, // removed, not in schema
-      },
-    });
+    // Format dates
+    const formattedCampaign = {
+      ...campaign,
+      createdAt: campaign.createdAt.toLocaleString(),
+    };
 
-    // Schedule the campaign execution (placeholder, not persistent)
-    setTimeout(() => {
-      this.executeCampaign(campaignId).catch(console.error);
-    }, scheduledFor.getTime() - Date.now());
-
-    return campaign;
+    return {
+      campaign: formattedCampaign,
+      stats,
+    };
   }
 } 
