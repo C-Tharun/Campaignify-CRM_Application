@@ -41,7 +41,7 @@ export async function startCustomerConsumer() {
 
       if (!messages) continue;
 
-      for (const [stream, streamMessages] of messages) {
+      for (const [stream, streamMessages] of messages as [string, [string, Record<string, string>][]][]) {
         for (const [id, fields] of streamMessages) {
           try {
             const data = JSON.parse(fields.data);
@@ -101,9 +101,11 @@ export async function startOrderConsumer() {
         ">"
       )) as [string, [string, Record<string, string>][]][] | null;
 
-      if (!messages) continue;
+      if (!messages || !Array.isArray(messages)) continue;
 
       for (const [stream, streamMessages] of messages) {
+        if (!Array.isArray(streamMessages)) continue;
+
         for (const [id, fields] of streamMessages) {
           try {
             const data = JSON.parse(fields.data);
