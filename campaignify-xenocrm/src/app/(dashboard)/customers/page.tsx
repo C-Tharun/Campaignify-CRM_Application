@@ -24,8 +24,8 @@ export default async function CustomersPage({
     prisma.customer.findMany({
       where: {
         OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
+          { name: { contains: search } },
+          { email: { contains: search } },
         ],
       },
       include: {
@@ -40,8 +40,8 @@ export default async function CustomersPage({
     prisma.customer.count({
       where: {
         OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
+          { name: { contains: search } },
+          { email: { contains: search } },
         ],
       },
     }),
@@ -116,9 +116,7 @@ export default async function CustomersPage({
                   </div>
                   <div className="mt-2 sm:flex sm:justify-between">
                     <div className="sm:flex">
-                      <p className="flex items-center text-sm text-gray-500">
-                        {customer.phone || "No phone number"}
-                      </p>
+                      {/* Phone field removed as it does not exist in the schema */}
                     </div>
                     <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
                       <p>
