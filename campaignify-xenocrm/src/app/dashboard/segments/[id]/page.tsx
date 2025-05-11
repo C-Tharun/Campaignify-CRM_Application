@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { PrismaClient } from "@prisma/client";
 import Link from "next/link";
 import React from "react";
-import SegmentForm from "@/components/SegmentForm";
+import SegmentForm from "@/components/forms/SegmentForm";
 
 const prisma = new PrismaClient();
 
@@ -21,7 +21,7 @@ export default async function SegmentPage({ params }: SegmentPageProps) {
   }
 
   // Ensure params.id is a string
-  const segmentId = typeof params?.id === 'string' ? params.id : '';
+  const segmentId = params.id;
 
   if (!segmentId) {
     redirect("/dashboard/segments");
@@ -42,24 +42,40 @@ export default async function SegmentPage({ params }: SegmentPageProps) {
   let customerWhere: any = null;
 
   if (rules && Object.keys(rules).length > 0) {
-    customerWhere = {};
-    if (rules.name) {
-      customerWhere.name = { contains: rules.name };
-    }
-    if (rules.country) {
-      customerWhere.country = rules.country;
-    }
-    if (rules.max_visits !== undefined) {
-      customerWhere.visits = { lte: rules.max_visits };
-    }
-    if (rules.min_total_spent !== undefined) {
-      customerWhere.total_spent = { gte: rules.min_total_spent };
-    }
-    if (rules.min_days_inactive !== undefined) {
-      // Calculate the date for min_days_inactive
-      const minInactiveDate = new Date();
-      minInactiveDate.setDate(minInactiveDate.getDate() - rules.min_days_inactive);
-      customerWhere.last_active = { lte: minInactiveDate };
+    // Support both old and new (AI-generated) rule formats
+    if (rules.rule && rules.rule.condition) {
+      const cond = rules.rule.condition;
+      customerWhere = {};
+      if (cond.customer_country) {
+        customerWhere.country = cond.customer_country;
+      }
+      if (cond.total_spent && cond.total_spent.greater_than !== undefined) {
+        customerWhere.totalSpent = { gt: cond.total_spent.greater_than };
+      }
+      if (cond.customer_visits && cond.customer_visits.greater_than !== undefined) {
+        customerWhere.visitCount = { gt: cond.customer_visits.greater_than };
+      }
+      // Add more mappings as needed for other AI rule keys
+    } else {
+      // Legacy/flat rules
+      customerWhere = {};
+      if (rules.name) {
+        customerWhere.name = { contains: rules.name };
+      }
+      if (rules.country) {
+        customerWhere.country = rules.country;
+      }
+      if (rules.max_visits !== undefined) {
+        customerWhere.visitCount = { lte: rules.max_visits };
+      }
+      if (rules.min_total_spent !== undefined) {
+        customerWhere.totalSpent = { gte: rules.min_total_spent };
+      }
+      if (rules.min_days_inactive !== undefined) {
+        const minInactiveDate = new Date();
+        minInactiveDate.setDate(minInactiveDate.getDate() - rules.min_days_inactive);
+        customerWhere.last_active = { lte: minInactiveDate };
+      }
     }
   }
 
@@ -168,6 +184,9 @@ export default async function SegmentPage({ params }: SegmentPageProps) {
                           <tr>
                             <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-blue-900 sm:pl-6">Name</th>
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-blue-900">Email</th>
+                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-blue-900">Country</th>
+                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-blue-900">Total Spent</th>
+                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-blue-900">Visit Count</th>
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-blue-900">Phone</th>
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-blue-900">Orders</th>
                             <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">View</span></th>
@@ -178,6 +197,9 @@ export default async function SegmentPage({ params }: SegmentPageProps) {
                             <tr key={customer.id} className="transition-all duration-200 hover:bg-blue-50/70">
                               <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{customer.name}</td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{customer.email}</td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{customer.country}</td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${customer.totalSpent.toFixed(2)}</td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{customer.visitCount}</td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{customer.phone}</td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{customer._count.orders}</td>
                               <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">

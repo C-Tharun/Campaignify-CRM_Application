@@ -18,19 +18,39 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (!user.email) return false;
+      
+      // Ensure user exists in database
+      const existingUser = await prisma.user.findUnique({
+        where: { email: user.email },
+      });
+
+      if (!existingUser) {
+        await prisma.user.create({
+          data: {
+            email: user.email,
+            name: user.name || "",
+            image: user.image || "",
+          },
+        });
+      }
+
+      return true;
+    },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id;
-        session.user.name = token.name;
-        session.user.email = token.email;
-        session.user.image = token.picture;
+        session.user.id = token.id as string;
+        session.user.name = token.name as string;
+        session.user.email = token.email as string;
+        session.user.image = token.picture as string;
       }
       return session;
     },
     async jwt({ token, user }) {
       const dbUser = await prisma.user.findFirst({
         where: {
-          email: token.email,
+          email: token.email as string,
         },
       });
 

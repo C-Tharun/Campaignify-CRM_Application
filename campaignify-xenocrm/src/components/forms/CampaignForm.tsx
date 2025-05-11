@@ -45,13 +45,14 @@ export default function CampaignForm({ segments, initialData }: CampaignFormProp
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save campaign");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save campaign");
       }
 
       router.push("/dashboard/campaigns");
       router.refresh();
     } catch (err) {
-      setError("Failed to save campaign. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to save campaign. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -68,7 +69,7 @@ export default function CampaignForm({ segments, initialData }: CampaignFormProp
       <div>
         <label
           htmlFor="name"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-black"
         >
           Campaign Name
         </label>
@@ -80,32 +81,33 @@ export default function CampaignForm({ segments, initialData }: CampaignFormProp
           onChange={(e) =>
             setFormData({ ...formData, name: e.target.value })
           }
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          className="mt-1 block w-full rounded-md border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-black bg-white px-3 py-2"
         />
       </div>
 
       <div>
         <label
           htmlFor="description"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-black"
         >
           Description
         </label>
         <textarea
           id="description"
           rows={3}
+          required
           value={formData.description}
           onChange={(e) =>
             setFormData({ ...formData, description: e.target.value })
           }
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          className="mt-1 block w-full rounded-md border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-black bg-white px-3 py-2"
         />
       </div>
 
       <div>
         <label
           htmlFor="segmentId"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-black"
         >
           Target Segment
         </label>
@@ -116,7 +118,7 @@ export default function CampaignForm({ segments, initialData }: CampaignFormProp
           onChange={(e) =>
             setFormData({ ...formData, segmentId: e.target.value })
           }
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          className="mt-1 block w-full rounded-md border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-black bg-white px-3 py-2"
         >
           <option value="">Select a segment</option>
           {segments.map((segment) => (
@@ -130,7 +132,7 @@ export default function CampaignForm({ segments, initialData }: CampaignFormProp
       <div>
         <label
           htmlFor="status"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-black"
         >
           Status
         </label>
@@ -141,7 +143,7 @@ export default function CampaignForm({ segments, initialData }: CampaignFormProp
           onChange={(e) =>
             setFormData({ ...formData, status: e.target.value })
           }
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          className="mt-1 block w-full rounded-md border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-black bg-white px-3 py-2"
         >
           <option value="DRAFT">Draft</option>
           <option value="SCHEDULED">Scheduled</option>
@@ -155,7 +157,7 @@ export default function CampaignForm({ segments, initialData }: CampaignFormProp
         <button
           type="button"
           onClick={() => router.back()}
-          className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="inline-flex justify-center rounded-md border border-blue-500 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           Cancel
         </button>

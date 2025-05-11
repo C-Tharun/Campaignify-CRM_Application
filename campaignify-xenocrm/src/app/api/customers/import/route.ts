@@ -41,6 +41,14 @@ export async function POST(request: Request) {
           throw new Error("Email is required");
         }
 
+        if (!record.name) {
+          throw new Error("Name is required");
+        }
+
+        if (!record.country) {
+          throw new Error("Country is required");
+        }
+
         // Check if customer exists
         const existingCustomer = await prisma.customer.findUnique({
           where: { email: record.email },
@@ -51,11 +59,11 @@ export async function POST(request: Request) {
           await prisma.customer.update({
             where: { email: record.email },
             data: {
-              name: record.name || existingCustomer.name,
-              phone: record.phone || existingCustomer.phone,
-              address: record.address || existingCustomer.address,
-              last_active: record.last_purchase_date ? new Date(record.last_purchase_date) : existingCustomer.last_active,
-              total_spent: record.total_spent ? parseFloat(record.total_spent) : existingCustomer.total_spent,
+              name: record.name,
+              country: record.country,
+              totalSpent: record.totalSpent ? parseFloat(record.totalSpent) : existingCustomer.totalSpent,
+              lastVisit: record.lastVisit ? new Date(record.lastVisit) : existingCustomer.lastVisit,
+              visitCount: record.visitCount ? parseInt(record.visitCount) : existingCustomer.visitCount,
             },
           });
           results.updated++;
@@ -64,11 +72,11 @@ export async function POST(request: Request) {
           await prisma.customer.create({
             data: {
               email: record.email,
-              name: record.name || "",
-              phone: record.phone || "",
-              address: record.address || "",
-              last_active: record.last_purchase_date ? new Date(record.last_purchase_date) : null,
-              total_spent: record.total_spent ? parseFloat(record.total_spent) : null,
+              name: record.name,
+              country: record.country,
+              totalSpent: record.totalSpent ? parseFloat(record.totalSpent) : 0,
+              lastVisit: record.lastVisit ? new Date(record.lastVisit) : null,
+              visitCount: record.visitCount ? parseInt(record.visitCount) : 0,
             },
           });
           results.created++;

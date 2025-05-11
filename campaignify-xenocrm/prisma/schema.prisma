@@ -59,30 +59,44 @@ model VerificationToken {
 }
 
 model Customer {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  name        String
-  phone       String?
-  address     String?
-  country     String?
-  visits      Int?
-  last_active DateTime?
-  total_spent Float?
-  orders      Order[]
-  segments    Segment[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(cuid())
+  name       String
+  email      String    @unique
+  country    String
+  totalSpent Float     @default(0)
+  lastVisit  DateTime?
+  visitCount Int       @default(0)
+  orders     Order[]
+  segments   Segment[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model Order {
-  id         String   @id @default(cuid())
+  id         String      @id @default(cuid())
   customerId String
+  customer   Customer    @relation(fields: [customerId], references: [id])
   amount     Float
-  status     String
-  items      Json
-  customer   Customer @relation(fields: [customerId], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  currency   String      @db.Char(3)
+  status     OrderStatus @default(PENDING)
+  items      OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([customerId])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  productId String
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
 }
 
 model Segment {
@@ -138,4 +152,11 @@ enum MessageStatus {
   SENT
   DELIVERED
   FAILED
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
 } 

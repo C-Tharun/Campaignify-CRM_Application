@@ -10,11 +10,7 @@ export class CampaignService {
       const campaign = await prisma.campaign.findUnique({
         where: { id: campaignId },
         include: {
-          segment: {
-            include: {
-              customers: true,
-            },
-          },
+          segment: true,
         },
       });
 
@@ -32,13 +28,41 @@ export class CampaignService {
         data: { status: CampaignStatus.SENDING },
       });
 
+      // Calculate customer query based on segment rules
+      let customerWhere: any = null;
+      const rules = campaign.segment.rules as any;
+      if (rules && Object.keys(rules).length > 0) {
+        customerWhere = {};
+        if (rules.name) {
+          customerWhere.name = { contains: rules.name };
+        }
+        if (rules.country) {
+          customerWhere.country = rules.country;
+        }
+        if (rules.max_visits !== undefined) {
+          customerWhere.visits = { lte: rules.max_visits };
+        }
+        if (rules.min_total_spent !== undefined) {
+          customerWhere.total_spent = { gte: rules.min_total_spent };
+        }
+        if (rules.min_days_inactive !== undefined) {
+          const minInactiveDate = new Date();
+          minInactiveDate.setDate(minInactiveDate.getDate() - rules.min_days_inactive);
+          customerWhere.last_active = { lte: minInactiveDate };
+        }
+      }
+
+      // Get customers based on segment rules
+      const customers = await prisma.customer.findMany({
+        where: customerWhere,
+      });
+
       // Send messages to all customers in the segment
-      const messagePromises = campaign.segment.customers.map((customer) =>
+      const messagePromises = customers.map((customer) =>
         MessageService.sendMessage({
           campaignId,
           customerId: customer.id,
-          content: `Hi ${customer.name}, here's a special offer just for you!`, // Use a default message
-          type: "EMAIL", // Default to email for now
+          content: campaign.description || `Hi ${customer.name}, here's a special offer just for you!`,
         })
       );
 
@@ -69,13 +93,7 @@ export class CampaignService {
       prisma.campaign.findUnique({
         where: { id: campaignId },
         include: {
-          segment: {
-            include: {
-              _count: {
-                select: { customers: true },
-              },
-            },
-          },
+          segment: true,
         },
       }),
       MessageService.getMessageStats(campaignId),
@@ -85,10 +103,39 @@ export class CampaignService {
       throw new Error("Campaign not found");
     }
 
+    // Calculate dynamic audience size based on segment rules
+    let customerWhere: any = null;
+    const rules = campaign.segment.rules as any;
+    if (rules && Object.keys(rules).length > 0) {
+      customerWhere = {};
+      if (rules.name) {
+        customerWhere.name = { contains: rules.name };
+      }
+      if (rules.country) {
+        customerWhere.country = rules.country;
+      }
+      if (rules.max_visits !== undefined) {
+        customerWhere.visits = { lte: rules.max_visits };
+      }
+      if (rules.min_total_spent !== undefined) {
+        customerWhere.total_spent = { gte: rules.min_total_spent };
+      }
+      if (rules.min_days_inactive !== undefined) {
+        const minInactiveDate = new Date();
+        minInactiveDate.setDate(minInactiveDate.getDate() - rules.min_days_inactive);
+        customerWhere.last_active = { lte: minInactiveDate };
+      }
+    }
+
+    let totalCustomers = 0;
+    if (customerWhere) {
+      totalCustomers = await prisma.customer.count({ where: customerWhere });
+    }
+
     return {
       campaign,
       stats: {
-        totalCustomers: campaign.segment._count.customers,
+        totalCustomers,
         ...messageStats,
       },
     };

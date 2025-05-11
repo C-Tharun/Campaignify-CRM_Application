@@ -36,6 +36,30 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
     redirect("/dashboard/customers");
   }
 
+  // Fetch all segments for dynamic membership calculation
+  const allSegments = await prisma.segment.findMany();
+  // Helper to check if a customer matches a segment's rules
+  function matchesSegmentRules(rules: any, customer: any) {
+    if (!rules || Object.keys(rules).length === 0) return false;
+    // AI-generated nested rules
+    if (rules.rule && rules.rule.condition) {
+      const cond = rules.rule.condition;
+      if (cond.customer_country && customer.country !== cond.customer_country) return false;
+      if (cond.total_spent && cond.total_spent.greater_than !== undefined && !(customer.totalSpent > cond.total_spent.greater_than)) return false;
+      if (cond.customer_visits && cond.customer_visits.greater_than !== undefined && !(customer.visitCount > cond.customer_visits.greater_than)) return false;
+      // Add more mappings as needed
+      return true;
+    } else {
+      // Legacy/flat rules
+      if (rules.country && customer.country !== rules.country) return false;
+      if (rules.min_total_spent !== undefined && !(customer.totalSpent >= rules.min_total_spent)) return false;
+      if (rules.max_visits !== undefined && !(customer.visitCount <= rules.max_visits)) return false;
+      // Add more mappings as needed
+      return true;
+    }
+  }
+  const dynamicSegments = allSegments.filter(seg => matchesSegmentRules(seg.rules, customer));
+
   return (
     <div className="min-h-screen bg-gray-100">
       <main className="py-10">
@@ -97,9 +121,9 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
                   Customer Segments
                 </h3>
                 <div className="mt-5">
-                  {customer.segments.length > 0 ? (
+                  {dynamicSegments.length > 0 ? (
                     <ul className="divide-y divide-gray-200">
-                      {customer.segments.map((segment) => (
+                      {dynamicSegments.map((segment) => (
                         <li
                           key={segment.id}
                           className="py-4 flex items-center justify-between"

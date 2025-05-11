@@ -54,7 +54,7 @@ export default function DataImport() {
       <div>
         <label
           htmlFor="type"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-black"
         >
           Data Type
         </label>
@@ -62,7 +62,7 @@ export default function DataImport() {
           id="type"
           value={type}
           onChange={(e) => setType(e.target.value as "customers" | "orders")}
-          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md text-black"
         >
           <option value="customers">Customers</option>
           <option value="orders">Orders</option>
@@ -72,7 +72,7 @@ export default function DataImport() {
       <div>
         <label
           htmlFor="file"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-black"
         >
           CSV File
         </label>
@@ -92,7 +92,7 @@ export default function DataImport() {
                 strokeLinejoin="round"
               />
             </svg>
-            <div className="flex text-sm text-gray-600">
+            <div className="flex text-sm text-blue-900">
               <label
                 htmlFor="file-upload"
                 className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
@@ -109,11 +109,11 @@ export default function DataImport() {
               </label>
               <p className="pl-1">or drag and drop</p>
             </div>
-            <p className="text-xs text-gray-500">CSV up to 10MB</p>
+            <p className="text-xs text-blue-900">CSV up to 10MB</p>
           </div>
         </div>
         {file && (
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-blue-900">
             Selected file: {file.name}
           </p>
         )}

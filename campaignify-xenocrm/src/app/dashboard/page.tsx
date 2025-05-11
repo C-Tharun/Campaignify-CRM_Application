@@ -1,8 +1,12 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import DataImport from "@/components/DataImport";
-import SignOutButton from "@/components/SignOutButton";
+import { PrismaClient } from "@prisma/client";
+import DashboardLayout from "@/components/layouts/DashboardLayout";
+import DataImport from "@/components/forms/DataImport";
+import RecentActivity from "@/components/ui/RecentActivity";
+
+const prisma = new PrismaClient();
 
 export default async function DashboardPage() {
   const session = await getServerSession();
@@ -11,103 +15,72 @@ export default async function DashboardPage() {
     redirect("/auth/signin");
   }
 
+  const [campaigns, segments, customers] = await Promise.all([
+    prisma.campaign.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      include: {
+        segment: true,
+        _count: {
+          select: { messages: true },
+        },
+      },
+    }),
+    prisma.segment.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: {
+          select: { customers: true },
+        },
+      },
+    }),
+    prisma.customer.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <span className="text-xl font-bold text-gray-800">Campaignify</span>
-              </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <Link
-                  href="/dashboard"
-                  className="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/dashboard/campaigns"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  Campaigns
-                </Link>
-                <Link
-                  href="/dashboard/segments"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  Segments
-                </Link>
-                <Link
-                  href="/dashboard/customers"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  Customers
-                </Link>
-              </div>
-            </div>
-            <div className="flex items-center">
-              <SignOutButton />
+    <DashboardLayout>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Quick Actions */}
+        <div className="bg-white rounded-lg shadow p-6 flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-black">Quick Actions</h3>
+            <div className="flex flex-col space-y-3">
+              <Link
+                href="/dashboard/campaigns/new"
+                className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Create Campaign
+              </Link>
+              <Link
+                href="/dashboard/segments/new"
+                className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                Create Segment
+              </Link>
             </div>
           </div>
         </div>
-      </nav>
 
-      <main className="py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="md:flex md:items-center md:justify-between">
-            <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                Welcome back, {session.user?.name || "User"}!
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Manage your campaigns, segments, and customer data from here.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
-                <div className="mt-4 space-y-4">
-                  <Link
-                    href="/dashboard/campaigns/new"
-                    className="block w-full text-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    Create Campaign
-                  </Link>
-                  <Link
-                    href="/dashboard/segments/new"
-                    className="block w-full text-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                  >
-                    Create Segment
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg font-medium text-gray-900">Data Import</h3>
-                <div className="mt-4">
-                  <DataImport />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
-                <div className="mt-4">
-                  <p className="text-sm text-gray-500">No recent activity</p>
-                </div>
-              </div>
-            </div>
+        {/* Data Import */}
+        <div className="bg-white rounded-lg shadow p-6 flex flex-col justify-between">
+          <h3 className="text-lg font-semibold mb-4 text-black">Data Import</h3>
+          <div className="flex-1 flex flex-col justify-center">
+            <DataImport />
           </div>
         </div>
-      </main>
-    </div>
+
+        {/* Recent Activity */}
+        <div className="bg-white rounded-lg shadow p-6 flex flex-col justify-between">
+          <h3 className="text-lg font-semibold mb-4 text-black">Recent Activity</h3>
+          <div className="flex-1 flex flex-col justify-center">
+            <RecentActivity />
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
   );
 } 

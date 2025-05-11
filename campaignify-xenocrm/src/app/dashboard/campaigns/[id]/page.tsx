@@ -1,8 +1,8 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
-import { CampaignService } from "@/lib/campaignService";
-import CampaignActions from "@/components/CampaignActions";
-import CampaignStats from "@/components/CampaignStats";
+import { CampaignService } from "@/lib/services/campaignService";
+import CampaignActions from "@/components/ui/CampaignActions";
+import CampaignStats from "@/components/ui/CampaignStats";
 
 export default async function CampaignDetailsPage({
   params,

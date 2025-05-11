@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PrismaClient } from "@prisma/client";
+import DashboardLayout from "@/components/layouts/DashboardLayout";
+import BackButton from "@/components/ui/BackButton";
 
 const prisma = new PrismaClient();
 
@@ -60,9 +62,7 @@ export default async function CampaignsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <main className="py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <DashboardLayout>
           <div className="md:flex md:items-center md:justify-between">
             <div className="flex-1 min-w-0">
               <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
@@ -71,7 +71,7 @@ export default async function CampaignsPage() {
             </div>
             <div className="mt-4 flex md:mt-0 md:ml-4">
               <Link
-                href="/dashboard/campaigns/create"
+            href="/dashboard/campaigns/new"
                 className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Create Campaign
@@ -86,102 +86,54 @@ export default async function CampaignsPage() {
                   <table className="min-w-full divide-y divide-gray-300">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th
-                          scope="col"
-                          className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
-                        >
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
                           Name
                         </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                        >
-                          Description
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Segment
                         </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                        >
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                           Status
                         </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                        >
-                          Segment
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                        >
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                           Audience Size
                         </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                        >
-                          Sent
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Messages
                         </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                        >
-                          Failed
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                        >
-                          Created
-                        </th>
-                        <th
-                          scope="col"
-                          className="relative py-3.5 pl-3 pr-4 sm:pr-6"
-                        >
-                          <span className="sr-only">View</span>
+                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                      <span className="sr-only">Actions</span>
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
-                      {campaigns.map((campaign, idx) => (
+                  {campaigns.map((campaign, index) => (
                         <tr key={campaign.id}>
                           <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                             {campaign.name}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {campaign.description || "-"}
+                        {campaign.segment.name}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                campaign.status === "SENDING"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : campaign.status === "COMPLETED"
-                                  ? "bg-green-100 text-green-800"
-                                  : campaign.status === "FAILED"
-                                  ? "bg-red-100 text-red-800"
-                                  : campaign.status === "SCHEDULED"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                          campaign.status === "ACTIVE" ? "bg-green-100 text-green-800" :
+                          campaign.status === "PAUSED" ? "bg-yellow-100 text-yellow-800" :
+                          "bg-gray-100 text-gray-800"
+                        }`}>
                               {campaign.status}
                             </span>
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {campaign.segment.name}
+                        {campaignStats[index].audienceSize}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {campaignStats[idx].audienceSize}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {campaignStats[idx].sent}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {campaignStats[idx].failed}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {new Date(campaign.createdAt).toLocaleDateString()}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-green-600">{campaignStats[index].sent} sent</span>
+                          {campaignStats[index].failed > 0 && (
+                            <span className="text-red-600">{campaignStats[index].failed} failed</span>
+                          )}
+                        </div>
                           </td>
                           <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                             <Link
@@ -199,8 +151,6 @@ export default async function CampaignsPage() {
               </div>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+    </DashboardLayout>
   );
 } 
