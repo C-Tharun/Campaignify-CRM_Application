@@ -99,7 +99,7 @@ export async function startOrderConsumer() {
         "STREAMS",
         stream,
         ">"
-      );
+      ) as [string, [string, Record<string, string>][]] | null;
 
       if (!messages) continue;
 
@@ -162,4 +162,4 @@ export async function startOrderConsumer() {
     // Restart consumer after a delay
     setTimeout(startOrderConsumer, 5000);
   }
-} 
+}
