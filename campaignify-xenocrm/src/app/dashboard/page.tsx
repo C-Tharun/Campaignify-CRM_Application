@@ -31,7 +31,7 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       include: {
         _count: {
-          select: { customers: true },
+          select: { customerToSegments: true }, // Adjust to match the join table relation
         },
       },
     }),
@@ -83,4 +83,4 @@ export default async function DashboardPage() {
       </div>
     </DashboardLayout>
   );
-} 
+}
