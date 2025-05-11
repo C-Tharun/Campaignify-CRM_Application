@@ -88,7 +88,7 @@ export async function startOrderConsumer() {
 
     while (true) {
       // Read new messages from the stream
-      const messages = await redis.xreadgroup(
+      const messages = (await redis.xreadgroup(
         "GROUP",
         consumerGroup,
         "order-worker",
@@ -99,7 +99,7 @@ export async function startOrderConsumer() {
         "STREAMS",
         stream,
         ">"
-      ) as [string, [string, Record<string, string>][]] | null;
+      )) as [string, [string, Record<string, string>][]][] | null;
 
       if (!messages) continue;
 
@@ -107,7 +107,7 @@ export async function startOrderConsumer() {
         for (const [id, fields] of streamMessages) {
           try {
             const data = JSON.parse(fields.data);
-            
+
             // Process orders in a transaction
             for (const order of data) {
               await prisma.$transaction(async (tx) => {
