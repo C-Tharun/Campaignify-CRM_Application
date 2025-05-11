@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { PrismaClient } from "@prisma/client";
-import CampaignForm from "@/components/forms/CampaignForm";
+import CampaignForm from "../../../../components/forms/CampaignForm";
 
 const prisma = new PrismaClient();
 
