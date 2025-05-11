@@ -21,13 +21,19 @@ export default async function CustomerDetailPage({
       orders: {
         orderBy: { createdAt: "desc" },
       },
-      segments: true,
+      customerToSegments: {
+        include: {
+          segment: true,
+        },
+      },
     },
   });
 
   if (!customer) {
     notFound();
   }
+
+  const segments = customer.customerToSegments.map((cts) => cts.segment);
 
   return (
     <div className="space-y-6">
@@ -56,18 +62,6 @@ export default async function CustomerDetailPage({
         </div>
         <div className="border-t border-gray-200">
           <dl>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Phone</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {customer.phone || "Not provided"}
-              </dd>
-            </div>
-            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Address</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {customer.address || "Not provided"}
-              </dd>
-            </div>
             <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt className="text-sm font-medium text-gray-500">
                 Member since
@@ -127,7 +121,7 @@ export default async function CustomerDetailPage({
         <h2 className="text-lg font-medium text-gray-900 mb-4">Segments</h2>
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul role="list" className="divide-y divide-gray-200">
-            {customer.segments.map((segment) => (
+            {segments.map((segment) => (
               <li key={segment.id}>
                 <Link
                   href={`/segments/${segment.id}`}
@@ -150,7 +144,7 @@ export default async function CustomerDetailPage({
                 </Link>
               </li>
             ))}
-            {customer.segments.length === 0 && (
+            {segments.length === 0 && (
               <li className="px-4 py-4 sm:px-6 text-sm text-gray-500">
                 Not part of any segments
               </li>
