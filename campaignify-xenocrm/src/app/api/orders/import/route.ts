@@ -72,7 +72,13 @@ export async function POST(request: Request) {
             customerId: customer.id,
             amount: parseFloat(record.amount),
             status: record.status,
-            items,
+            items: {
+              create: items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price,
+              })),
+            },
           },
         });
         results.created++;
@@ -95,4 +101,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-} 
+}
