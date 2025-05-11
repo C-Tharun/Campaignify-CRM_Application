@@ -28,7 +28,11 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
           createdAt: "desc",
         },
       },
-      segments: true,
+      customerToSegments: {
+        include: {
+          segment: true, // Fetch related segments through the join table
+        },
+      },
     },
   });
 
@@ -224,4 +228,4 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
       </main>
     </div>
   );
-} 
+}
