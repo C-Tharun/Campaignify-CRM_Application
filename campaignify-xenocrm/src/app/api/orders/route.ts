@@ -16,7 +16,7 @@ const OrderSchema = z.object({
   customerId: z.string(),
   amount: z.number().min(0),
   currency: z.string().length(3).default("USD"),
-  status: z.enum(["PENDING", "COMPLETED", "CANCELLED", "REFUNDED"]).default("PENDING"),
+  status: z.nativeEnum(OrderStatus).default(OrderStatus.PENDING),
   items: z.array(OrderItemSchema).min(1),
   createdAt: z.string().datetime().optional(),
 });

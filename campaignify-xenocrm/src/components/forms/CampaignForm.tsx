@@ -1,7 +1,23 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import { CampaignStatus } from "@prisma/client";
+
+const campaignSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().min(1, "Description is required"),
+  segmentId: z.string().min(1, "Segment is required"),
+  status: z.nativeEnum(CampaignStatus),
+});
+
+type CampaignFormData = z.infer<typeof campaignSchema>;
 
 interface Segment {
   id: string;
@@ -10,164 +26,112 @@ interface Segment {
 
 interface CampaignFormProps {
   segments: Segment[];
-  initialData?: {
-    name: string;
-    description: string;
-    segmentId: string;
-    status: string;
-  };
+  initialData?: Partial<CampaignFormData>;
 }
 
-export default function CampaignForm({ segments, initialData }: CampaignFormProps) {
+export function CampaignForm({ segments, initialData }: CampaignFormProps) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState({
-    name: initialData?.name || "",
-    description: initialData?.description || "",
-    segmentId: initialData?.segmentId || "",
-    status: initialData?.status || "DRAFT",
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<CampaignFormData>({
+    resolver: zodResolver(campaignSchema),
+    defaultValues: {
+      ...initialData,
+      status: initialData?.status || CampaignStatus.DRAFT,
+    },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
-
+  const onSubmit = async (data: CampaignFormData) => {
     try {
       const response = await fetch("/api/campaigns", {
         method: initialData ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save campaign");
+        throw new Error("Failed to save campaign");
       }
 
       router.push("/dashboard/campaigns");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save campaign. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      console.error("Failed to save campaign:", err);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <div className="text-sm text-red-700">{error}</div>
-        </div>
-      )}
-
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label
-          htmlFor="name"
-          className="block text-sm font-medium text-black"
-        >
-          Campaign Name
-        </label>
-        <input
-          type="text"
-          id="name"
-          required
-          value={formData.name}
-          onChange={(e) =>
-            setFormData({ ...formData, name: e.target.value })
-          }
-          className="mt-1 block w-full rounded-md border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-black bg-white px-3 py-2"
+        <Input
+          {...register("name")}
+          placeholder="Campaign Name"
+          className={errors.name ? "border-red-500" : ""}
         />
+        {errors.name && (
+          <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+        )}
       </div>
 
       <div>
-        <label
-          htmlFor="description"
-          className="block text-sm font-medium text-black"
-        >
-          Description
-        </label>
-        <textarea
-          id="description"
-          rows={3}
-          required
-          value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
-          className="mt-1 block w-full rounded-md border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-black bg-white px-3 py-2"
+        <Textarea
+          {...register("description")}
+          placeholder="Campaign Description"
+          className={errors.description ? "border-red-500" : ""}
         />
+        {errors.description && (
+          <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
+        )}
       </div>
 
       <div>
-        <label
-          htmlFor="segmentId"
-          className="block text-sm font-medium text-black"
+        <Select
+          {...register("segmentId")}
+          className={errors.segmentId ? "border-red-500" : ""}
         >
-          Target Segment
-        </label>
-        <select
-          id="segmentId"
-          required
-          value={formData.segmentId}
-          onChange={(e) =>
-            setFormData({ ...formData, segmentId: e.target.value })
-          }
-          className="mt-1 block w-full rounded-md border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-black bg-white px-3 py-2"
-        >
-          <option value="">Select a segment</option>
+          <option value="">Select a Segment</option>
           {segments.map((segment) => (
             <option key={segment.id} value={segment.id}>
               {segment.name}
             </option>
           ))}
-        </select>
+        </Select>
+        {errors.segmentId && (
+          <p className="text-red-500 text-sm mt-1">{errors.segmentId.message}</p>
+        )}
       </div>
 
       <div>
-        <label
-          htmlFor="status"
-          className="block text-sm font-medium text-black"
+        <Select
+          {...register("status")}
+          className={errors.status ? "border-red-500" : ""}
         >
-          Status
-        </label>
-        <select
-          id="status"
-          required
-          value={formData.status}
-          onChange={(e) =>
-            setFormData({ ...formData, status: e.target.value })
-          }
-          className="mt-1 block w-full rounded-md border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-black bg-white px-3 py-2"
-        >
-          <option value="DRAFT">Draft</option>
-          <option value="SCHEDULED">Scheduled</option>
-          <option value="SENDING">Sending</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="FAILED">Failed</option>
-        </select>
+          {Object.values(CampaignStatus).map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
+        </Select>
+        {errors.status && (
+          <p className="text-red-500 text-sm mt-1">{errors.status.message}</p>
+        )}
       </div>
 
       <div className="flex justify-end space-x-3">
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => router.back()}
-          className="inline-flex justify-center rounded-md border border-blue-500 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-        >
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : initialData ? "Update Campaign" : "Create Campaign"}
-        </button>
+        </Button>
       </div>
     </form>
   );

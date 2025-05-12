@@ -3,13 +3,14 @@ import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
+import { CampaignStatus } from "@prisma/client";
 
 // Validation schema for campaign data
 const campaignSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
   segmentId: z.string().min(1, "Segment is required"),
-  status: z.enum(["DRAFT", "SCHEDULED", "SENDING", "COMPLETED", "FAILED"] as const),
+  status: z.nativeEnum(CampaignStatus).default(CampaignStatus.DRAFT),
 });
 
 export async function POST(request: Request) {
