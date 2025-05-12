@@ -38,25 +38,25 @@ export default function DashboardLayout({
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <Link href="/" className="text-xl font-bold text-indigo-600">
+                <Link href="/dashboard" className="text-xl font-bold text-indigo-600">
                   Campaignify
                 </Link>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
-                  href="/customers"
+                  href="/dashboard/customers"
                   className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   Customers
                 </Link>
                 <Link
-                  href="/campaigns"
+                  href="/dashboard/campaigns"
                   className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   Campaigns
                 </Link>
                 <Link
-                  href="/segments"
+                  href="/dashboard/segments"
                   className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   Segments
