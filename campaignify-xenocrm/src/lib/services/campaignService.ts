@@ -1,5 +1,6 @@
 import { PrismaClient, CampaignStatus } from "@prisma/client";
 import { MessageService } from "./messageService";
+import axios from "axios";
 
 const prisma = new PrismaClient();
 
@@ -57,14 +58,43 @@ export class CampaignService {
         where: customerWhere,
       });
 
-      // Send messages to all customers in the segment
-      const messagePromises = customers.map((customer) =>
-        MessageService.sendMessage({
+      // Helper to get AI-personalized message
+      async function getAIPersonalizedMessage(customer: any, campaign: any) {
+        try {
+          const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+              model: "mistralai/mistral-7b-instruct",
+              messages: [
+                { role: "system", content: "You are a marketing assistant that writes short, friendly, personalized campaign messages for customers." },
+                { role: "user", content: `Write a personalized marketing message for ${customer.name} based on this campaign objective: \"${campaign.description}\".` }
+              ],
+              max_tokens: 80,
+              temperature: 0.7
+            },
+            {
+              headers: {
+                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                "HTTP-Referer": "http://localhost:3000",
+                "X-Title": "Xeno CRM AI"
+              },
+            }
+          );
+          return response.data.choices[0]?.message?.content || `Hi ${customer.name}, ${campaign.description}`;
+        } catch (e) {
+          return `Hi ${customer.name}, ${campaign.description}`;
+        }
+      }
+
+      // Send AI-personalized messages to all customers in the segment
+      const messagePromises = customers.map(async (customer) => {
+        const aiMessage = await getAIPersonalizedMessage(customer, campaign);
+        return MessageService.sendMessage({
           campaignId,
           customerId: customer.id,
-          content: campaign.description || `Hi ${customer.name}, here's a special offer just for you!`,
-        })
-      );
+          content: aiMessage,
+        });
+      });
 
       await Promise.all(messagePromises);
 

@@ -110,11 +110,8 @@ export function CampaignForm({ segments, initialData }: CampaignFormProps) {
           {...register("status")}
           className={errors.status ? "border-red-500" : ""}
         >
-          {Object.values(CampaignStatus).map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
-          ))}
+          <option value="DRAFT">DRAFT</option>
+          <option value="SCHEDULED">SCHEDULED</option>
         </Select>
         {errors.status && (
           <p className="text-red-500 text-sm mt-1">{errors.status.message}</p>

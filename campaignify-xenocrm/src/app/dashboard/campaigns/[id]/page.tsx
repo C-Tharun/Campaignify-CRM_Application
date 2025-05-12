@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { CampaignService } from "@/lib/services/campaignService";
 import CampaignActions from "@/components/ui/CampaignActions";
 import CampaignStats from "@/components/ui/CampaignStats";
+import { MessageService } from "@/lib/services/messageService";
+import { prisma } from "@/lib/prisma";
 
 export default async function CampaignDetailsPage({
   params,
@@ -17,6 +19,15 @@ export default async function CampaignDetailsPage({
 
   // Use CampaignService to get campaign and stats (with segment customers included)
   const { campaign, stats } = await CampaignService.getCampaignStats(params.id);
+
+  // Fetch all messages for this campaign, including customer info
+  const messages = await MessageService.getCampaignMessages(params.id);
+  const customerIds = messages.map((msg) => msg.customerId);
+  const customers = await prisma.customer.findMany({
+    where: { id: { in: customerIds } },
+    select: { id: true, name: true, email: true },
+  });
+  const customerMap = Object.fromEntries(customers.map(c => [c.id, c]));
 
   if (!campaign) {
     redirect("/dashboard/campaigns");
@@ -91,6 +102,45 @@ export default async function CampaignDetailsPage({
               </div>
             </div>
           </div>
+
+          {/* Message Log Section */}
+          <div className="mt-10">
+            <h3 className="text-lg font-bold mb-4 text-blue-800">Message Log</h3>
+            <div className="overflow-x-auto bg-white rounded-lg shadow p-4">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Customer</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Email</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Message</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Status</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {messages.length === 0 ? (
+                    <tr><td colSpan={5} className="text-center text-gray-400 py-4">No messages sent yet.</td></tr>
+                  ) : (
+                    messages.map((msg) => {
+                      const customer = customerMap[msg.customerId];
+                      return (
+                        <tr key={msg.id}>
+                          <td className="px-3 py-2 text-sm text-gray-900">{customer?.name || msg.customerId}</td>
+                          <td className="px-3 py-2 text-sm text-gray-500">{customer?.email || "-"}</td>
+                          <td className="px-3 py-2 text-sm text-gray-700">{msg.content}</td>
+                          <td className="px-3 py-2 text-sm">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${msg.status === "DELIVERED" ? "bg-green-100 text-green-800" : msg.status === "FAILED" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}`}>{msg.status}</span>
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-500">{msg.createdAt ? new Date(msg.createdAt).toLocaleString() : "-"}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       </main>
     </div>

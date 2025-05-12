@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       {
         model: "mistralai/mistral-7b-instruct",
         messages: [
-          { role: "system", content: "You are an assistant that converts natural language segment descriptions into JSON rules. Return only the JSON." },
+          { role: "system", content: "You are an assistant that converts natural language segment descriptions into JSON rules for a CRM. Output a flat JSON object with keys like country, minOrders, minTotalSpent, minDaysInactive, etc. Example: { \"country\": \"India\", \"minOrders\": 3, \"minTotalSpent\": 10000 }. Do not use nested objects or arrays. Return only the JSON." },
           { role: "user", content: naturalLanguage }
         ],
         max_tokens: 256,
