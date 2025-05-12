@@ -20,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <div className="bg-red-500 text-white p-4 text-2xl">TAILWIND TEST</div>
         <Providers>{children}</Providers>
       </body>
     </html>
