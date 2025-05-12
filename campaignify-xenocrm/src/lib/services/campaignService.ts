@@ -1,21 +1,19 @@
-import { CampaignStatus } from "@prisma/client";
+import { PrismaClient, CampaignStatus } from "@prisma/client";
 import { MessageService } from "./messageService";
 import axios from "axios";
-import { prisma } from "@/lib/prisma";
-import { withRetry } from "@/lib/db";
+
+const prisma = new PrismaClient();
 
 export class CampaignService {
   static async executeCampaign(campaignId: string) {
     try {
-      // Get campaign and its segment with retry
-      const campaign = await withRetry(() =>
-        prisma.campaign.findUnique({
-          where: { id: campaignId },
-          include: {
-            segment: true,
-          },
-        })
-      );
+      // Get campaign and its segment
+      const campaign = await prisma.campaign.findUnique({
+        where: { id: campaignId },
+        include: {
+          segment: true,
+        },
+      });
 
       if (!campaign) {
         throw new Error("Campaign not found");
@@ -25,13 +23,11 @@ export class CampaignService {
         throw new Error("Campaign is not in scheduled state");
       }
 
-      // Update campaign status to sending with retry
-      await withRetry(() =>
-        prisma.campaign.update({
-          where: { id: campaignId },
-          data: { status: CampaignStatus.SENDING },
-        })
-      );
+      // Update campaign status to sending
+      await prisma.campaign.update({
+        where: { id: campaignId },
+        data: { status: CampaignStatus.SENDING },
+      });
 
       // Calculate customer query based on segment rules
       let customerWhere: any = null;
@@ -57,12 +53,10 @@ export class CampaignService {
         }
       }
 
-      // Get customers based on segment rules with retry
-      const customers = await withRetry(() =>
-        prisma.customer.findMany({
-          where: customerWhere,
-        })
-      );
+      // Get customers based on segment rules
+      const customers = await prisma.customer.findMany({
+        where: customerWhere,
+      });
 
       // Helper to get AI-personalized message
       async function getAIPersonalizedMessage(customer: any, campaign: any) {
@@ -104,25 +98,21 @@ export class CampaignService {
 
       await Promise.all(messagePromises);
 
-      // Update campaign status to completed with retry
-      await withRetry(() =>
-        prisma.campaign.update({
-          where: { id: campaignId },
-          data: { status: CampaignStatus.COMPLETED },
-        })
-      );
+      // Update campaign status to completed
+      await prisma.campaign.update({
+        where: { id: campaignId },
+        data: { status: CampaignStatus.COMPLETED },
+      });
 
       return campaign;
     } catch (error) {
-      // Update campaign status to failed with retry
-      await withRetry(() =>
-        prisma.campaign.update({
-          where: { id: campaignId },
-          data: {
-            status: CampaignStatus.FAILED,
-          },
-        })
-      );
+      // Update campaign status to failed
+      await prisma.campaign.update({
+        where: { id: campaignId },
+        data: {
+          status: CampaignStatus.FAILED,
+        },
+      });
 
       throw error;
     }
@@ -130,14 +120,12 @@ export class CampaignService {
 
   static async getCampaignStats(campaignId: string) {
     const [campaign, messageStats] = await Promise.all([
-      withRetry(() =>
-        prisma.campaign.findUnique({
-          where: { id: campaignId },
-          include: {
-            segment: true,
-          },
-        })
-      ),
+      prisma.campaign.findUnique({
+        where: { id: campaignId },
+        include: {
+          segment: true,
+        },
+      }),
       MessageService.getMessageStats(campaignId),
     ]);
 
@@ -171,9 +159,7 @@ export class CampaignService {
 
     let totalCustomers = 0;
     if (customerWhere) {
-      totalCustomers = await withRetry(() =>
-        prisma.customer.count({ where: customerWhere })
-      );
+      totalCustomers = await prisma.customer.count({ where: customerWhere });
     }
 
     return {
@@ -186,17 +172,16 @@ export class CampaignService {
   }
 
   static async scheduleCampaign(campaignId: string, scheduledFor: Date) {
-    // Update campaign status with retry
-    const campaign = await withRetry(() =>
-      prisma.campaign.update({
-        where: { id: campaignId },
-        data: {
-          status: CampaignStatus.SCHEDULED,
-        },
-      })
-    );
+    // TODO: Implement scheduling logic if needed. Currently, this is a placeholder.
+    const campaign = await prisma.campaign.update({
+      where: { id: campaignId },
+      data: {
+        status: CampaignStatus.SCHEDULED,
+        // scheduledFor, // removed, not in schema
+      },
+    });
 
-    // Schedule the campaign execution
+    // Schedule the campaign execution (placeholder, not persistent)
     setTimeout(() => {
       this.executeCampaign(campaignId).catch(console.error);
     }, scheduledFor.getTime() - Date.now());
