@@ -13,6 +13,13 @@ redis.on("error", (error: Error) => {
   console.error("Redis connection error:", error);
 });
 
+interface StreamMessage {
+  data: string;
+  [key: string]: string;
+}
+
+type StreamMessages = [string, [string, StreamMessage][]][];
+
 // Consumer function to process customer data
 export async function startCustomerConsumer() {
   const consumerGroup = "customer-processor";
@@ -37,7 +44,7 @@ export async function startCustomerConsumer() {
         "STREAMS",
         stream,
         ">"
-      );
+      ) as StreamMessages | null;
 
       if (!messages) continue;
 
@@ -99,7 +106,7 @@ export async function startOrderConsumer() {
         "STREAMS",
         stream,
         ">"
-      );
+      ) as StreamMessages | null;
 
       if (!messages) continue;
 
