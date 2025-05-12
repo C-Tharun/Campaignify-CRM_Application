@@ -50,3 +50,7 @@ body {
 .animate-fade-in-up {
   animation: fade-in-up 0.7s cubic-bezier(0.4,0,0.2,1) both;
 }
+
+.test-tailwind {
+  @apply text-4xl text-red-500;
+}
