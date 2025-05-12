@@ -1,8 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useTransition } from "react";
-import { useDebounce } from "use-debounce";
+import { useCallback, useTransition, useRef, useEffect } from "react";
 
 interface CustomerSearchProps {
   segments: {
@@ -15,6 +14,7 @@ export default function CustomerSearch({ segments }: CustomerSearchProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   const createQueryString = useCallback(
     (name: string, value: string) => {
@@ -47,7 +47,22 @@ export default function CustomerSearch({ segments }: CustomerSearchProps) {
     [createQueryString, router]
   );
 
-  const [debouncedSearch] = useDebounce(handleSearch, 300);
+  const debouncedSearch = useCallback((value: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      handleSearch(value);
+    }, 300);
+  }, [handleSearch]);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="bg-white shadow sm:rounded-lg">
