@@ -19,9 +19,13 @@ export default async function NewCampaignPage() {
   });
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-8">Create New Campaign</h1>
-      <CampaignForm segments={segments} />
+    <div className="max-w-4xl mx-auto py-12">
+      <h1 className="text-3xl font-extrabold mb-8 text-gray-900 bg-gradient-to-r from-blue-700 via-purple-600 to-pink-500 bg-clip-text text-transparent drop-shadow-lg animate-fade-in-down">
+        Create New Campaign
+      </h1>
+      <div className="card animate-fade-in-up">
+        <CampaignForm segments={segments} />
+      </div>
     </div>
   );
 } 
