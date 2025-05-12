@@ -147,7 +147,7 @@ export default async function SegmentPage({ params }: SegmentPageProps) {
         case 'lessThanOrEqual': sqlOp = '<='; break;
       }
       const minOrderCount = orderCountRule.value;
-      const customerIdsWithMinOrders = await prisma.$queryRawUnsafe(
+      const customerIdsWithMinOrders = await prisma.$queryRawUnsafe<{ customerId: string }[]>(
         `SELECT customerId FROM \`Order\` GROUP BY customerId HAVING COUNT(*) ${sqlOp} ?`,
         minOrderCount
       );
