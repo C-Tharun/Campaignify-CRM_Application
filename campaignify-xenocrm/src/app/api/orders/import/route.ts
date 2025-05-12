@@ -72,14 +72,7 @@ export async function POST(request: Request) {
             customerId: customer.id,
             amount: parseFloat(record.amount),
             status: record.status,
-            currency: record.currency || "USD", // Default to "USD" if currency is not provided
-            items: {
-              create: items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                price: item.price,
-              })),
-            },
+            items,
           },
         });
         results.created++;
@@ -102,4 +95,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+} 

@@ -41,7 +41,7 @@ export async function startCustomerConsumer() {
 
       if (!messages) continue;
 
-      for (const [stream, streamMessages] of messages as [string, [string, Record<string, string>][]][]) {
+      for (const [stream, streamMessages] of messages) {
         for (const [id, fields] of streamMessages) {
           try {
             const data = JSON.parse(fields.data);
@@ -88,7 +88,7 @@ export async function startOrderConsumer() {
 
     while (true) {
       // Read new messages from the stream
-      const messages = (await redis.xreadgroup(
+      const messages = await redis.xreadgroup(
         "GROUP",
         consumerGroup,
         "order-worker",
@@ -99,17 +99,15 @@ export async function startOrderConsumer() {
         "STREAMS",
         stream,
         ">"
-      )) as [string, [string, Record<string, string>][]][] | null;
+      );
 
-      if (!messages || !Array.isArray(messages)) continue;
+      if (!messages) continue;
 
       for (const [stream, streamMessages] of messages) {
-        if (!Array.isArray(streamMessages)) continue;
-
         for (const [id, fields] of streamMessages) {
           try {
             const data = JSON.parse(fields.data);
-
+            
             // Process orders in a transaction
             for (const order of data) {
               await prisma.$transaction(async (tx) => {
@@ -164,4 +162,4 @@ export async function startOrderConsumer() {
     // Restart consumer after a delay
     setTimeout(startOrderConsumer, 5000);
   }
-}
+} 

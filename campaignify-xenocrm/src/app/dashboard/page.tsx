@@ -5,7 +5,6 @@ import { PrismaClient } from "@prisma/client";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import DataImport from "@/components/forms/DataImport";
 import RecentActivity from "@/components/ui/RecentActivity";
-import { useDebounce } from "use-debounce";
 
 const prisma = new PrismaClient();
 
@@ -32,7 +31,7 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       include: {
         _count: {
-          select: { customerToSegments: true }, // Adjust to match the join table relation
+          select: { customers: true },
         },
       },
     }),
@@ -84,4 +83,4 @@ export default async function DashboardPage() {
       </div>
     </DashboardLayout>
   );
-}
+} 
