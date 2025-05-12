@@ -98,6 +98,8 @@ input, select, textarea {
   border: 1px solid #e5e7eb;
   padding: 0.5rem 1rem;
   font-size: 1rem;
+  color: #22272f;
+  background: #fff;
   transition: border 0.2s, box-shadow 0.2s;
 }
 input:focus, select:focus, textarea:focus {
