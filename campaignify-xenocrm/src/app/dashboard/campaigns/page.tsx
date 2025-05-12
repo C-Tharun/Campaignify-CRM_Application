@@ -18,7 +18,13 @@ export default async function CampaignsPage() {
       createdAt: "desc",
     },
     include: {
-      segment: true,
+      segment: {
+        include: {
+          _count: {
+            select: { customerToSegments: true }
+          }
+        }
+      },
       messages: true,
     },
   });
