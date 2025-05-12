@@ -1,14 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState, useEffect } from "react";
-import { useDebounce } from "use-debounce";
+import { useCallback, useState, useEffect, useRef } from "react";
 
 export default function SegmentSearch() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [debouncedSearch] = useDebounce(search, 300);
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   const createQueryString = useCallback(
     (name: string, value: string) => {
@@ -19,14 +18,25 @@ export default function SegmentSearch() {
     [searchParams]
   );
 
-  // Update URL when debounced search changes
+  // Update URL when search changes
   useEffect(() => {
-    if (debouncedSearch !== searchParams.get("search")) {
-      router.push(
-        `/dashboard/segments?${createQueryString("search", debouncedSearch)}`
-      );
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  }, [debouncedSearch, searchParams, router, createQueryString]);
+    searchTimeoutRef.current = setTimeout(() => {
+      if (search !== searchParams.get("search")) {
+        router.push(
+          `/dashboard/segments?${createQueryString("search", search)}`
+        );
+      }
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [search, searchParams, router, createQueryString]);
 
   return (
     <div className="max-w-lg w-full lg:max-w-xs">
