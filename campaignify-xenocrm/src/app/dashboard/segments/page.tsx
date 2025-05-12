@@ -1,11 +1,9 @@
+import React from 'react';
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PrismaClient, Prisma } from "@prisma/client";
 import SegmentSearch from "@/components/ui/SegmentSearch";
-import React from "react";
-import DashboardLayout from "@/components/layouts/DashboardLayout";
-import BackButton from "@/components/ui/BackButton";
 
 const prisma = new PrismaClient();
 
@@ -20,79 +18,140 @@ export default async function SegmentsPage({ searchParams }: SegmentsPageProps) 
     redirect("/auth/signin");
   }
 
-  // Access searchParams as a plain object with proper type checking
-  const pageParam = searchParams?.page;
-  const searchParam = searchParams?.search;
-  const sortParam = searchParams?.sort;
-
-  const page = typeof pageParam === 'string' ? parseInt(pageParam) : 1;
+  const search = (searchParams.search as string) || "";
+  const page = Number(searchParams.page) || 1;
   const limit = 10;
   const skip = (page - 1) * limit;
-  const search = typeof searchParam === 'string' ? searchParam : '';
-  const sort = typeof sortParam === 'string' ? sortParam : 'createdAt:desc';
+  const sort = (searchParams.sort as string) || "createdAt";
 
-  // Build the where clause for filtering
-  const where = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { description: { contains: search, mode: "insensitive" } },
-        ],
-      }
-    : {};
-
-  // Build the orderBy clause for sorting
-  const [sortField, sortOrder] = sort.split(":");
-  const orderBy: Prisma.SegmentOrderByWithRelationInput = {
-    [sortField]: sortOrder || "desc",
+  const where: Prisma.SegmentWhereInput = {
+    OR: [
+      { name: { contains: search } },
+      { description: { contains: search } },
+    ],
   };
 
-  const segments = await prisma.segment.findMany({
-    where,
-    orderBy,
-    skip,
-    take: limit,
-  });
+  const [segmentsQueryResult, allMatchingIdsForCount] = await Promise.all([
+    prisma.segment.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { [sort]: "desc" },
+      include: {
+        _count: {
+          select: { customerToSegments: true },
+        },
+      },
+    }),
+    prisma.segment.findMany({
+      where,
+      select: { id: true } // Fetch only IDs for counting
+    }),
+  ]);
 
-  // Get total count for pagination
-  const total = await prisma.segment.count({ where });
-
-  // For each segment, compute dynamic customer count
-  const segmentCustomerCounts = await Promise.all(
-    segments.map(async (segment) => {
-      let customerWhere: any = null;
-      const rules = segment.rules as any;
-      if (rules && Object.keys(rules).length > 0) {
-        customerWhere = {};
-        if (rules.name) {
-          customerWhere.name = { contains: rules.name };
-        }
-        if (rules.country) {
-          customerWhere.country = rules.country;
-        }
-        if (rules.max_visits !== undefined) {
-          customerWhere.visits = { lte: rules.max_visits };
-        }
-        if (rules.min_total_spent !== undefined) {
-          customerWhere.total_spent = { gte: rules.min_total_spent };
-        }
-        if (rules.min_days_inactive !== undefined) {
-          const minInactiveDate = new Date();
-          minInactiveDate.setDate(minInactiveDate.getDate() - rules.min_days_inactive);
-          customerWhere.last_active = { lte: minInactiveDate };
-        }
-      }
-      if (customerWhere) {
-        return await prisma.customer.count({ where: customerWhere });
-      }
-      return 0;
-    })
-  );
+  const segments = segmentsQueryResult;
+  const total = allMatchingIdsForCount.length;
 
   const totalPages = Math.ceil(total / limit);
 
+  // Field mapping from snake_case to camelCase
+  const fieldMap: Record<string, string> = {
+    total_spent: "totalSpent",
+    customer_spending: "totalSpent",
+    visit_count: "visitCount",
+    last_visit: "lastVisit",
+    country: "country",
+    name: "name",
+    email: "email",
+    "orders.count": "orders.count",
+    // add more as needed
+  };
+
+  // Helper to count customers for a segment
+  async function getDynamicCustomerCount(segment: any) {
+    const rules = segment.rules as any;
+    let customerWhere: any = null;
+    let orderCountRule: any = null;
+    if (rules && Object.keys(rules).length > 0) {
+      if (Array.isArray(rules.rules)) {
+        // Flatten rules: if a rule has 'action' and/or 'condition', treat each as a separate rule
+        const flatRules = [];
+        for (const rule of rules.rules) {
+          if (rule.action) flatRules.push(rule.action);
+          if (rule.condition) flatRules.push(rule.condition);
+          if (!rule.action && !rule.condition) flatRules.push(rule);
+        }
+        customerWhere = {};
+        for (const rule of flatRules) {
+          if (!rule.field || rule.value === undefined) continue;
+          const prismaField = fieldMap[rule.field] || rule.field;
+          if (prismaField === "orders.count") {
+            orderCountRule = { ...rule, field: prismaField };
+            continue;
+          }
+          switch (rule.operator) {
+            case "equals":
+              customerWhere[prismaField] = rule.value;
+              break;
+            case "greaterThan":
+              customerWhere[prismaField] = { gt: rule.value };
+              break;
+            case "greaterThanOrEqual":
+              customerWhere[prismaField] = { gte: rule.value };
+              break;
+            case "lessThan":
+              customerWhere[prismaField] = { lt: rule.value };
+              break;
+            case "lessThanOrEqual":
+              customerWhere[prismaField] = { lte: rule.value };
+              break;
+            case "contains":
+              customerWhere[prismaField] = { contains: rule.value };
+              break;
+            default:
+              customerWhere[prismaField] = rule.value;
+          }
+        }
+      }
+    }
+    if (customerWhere) {
+      if (orderCountRule) {
+        // Use raw SQL to get customer IDs with order count filter (MySQL)
+        let sqlOp = '>=';
+        switch (orderCountRule.operator) {
+          case 'equals': sqlOp = '='; break;
+          case 'greaterThan': sqlOp = '>' ; break;
+          case 'greaterThanOrEqual': sqlOp = '>='; break;
+          case 'lessThan': sqlOp = '<'; break;
+          case 'lessThanOrEqual': sqlOp = '<='; break;
+        }
+        const minOrderCount = orderCountRule.value;
+        const customerIdsWithMinOrders = await prisma.$queryRawUnsafe(
+          `SELECT customerId FROM \`Order\` GROUP BY customerId HAVING COUNT(*) ${sqlOp} ?`,
+          minOrderCount
+        );
+        const matchingIds = (customerIdsWithMinOrders as any[]).map((row: any) => row.customerId);
+        if (matchingIds.length === 0) {
+          return 0;
+        } else {
+          return await prisma.customer.count({
+            where: { ...customerWhere, id: { in: matchingIds } },
+          });
+        }
+      } else {
+        return await prisma.customer.count({ where: customerWhere });
+      }
+    }
+    return 0;
+  }
+
+  // Get dynamic customer counts for all segments
+  const dynamicCustomerCounts = await Promise.all(
+    segments.map(segment => getDynamicCustomerCount(segment))
+  );
+
   return (
-    <DashboardLayout>
+    <div>
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
@@ -110,6 +169,10 @@ export default async function SegmentsPage({ searchParams }: SegmentsPageProps) 
       </div>
 
       <div className="mt-8 flex flex-col">
+        <div className="mb-4">
+          <SegmentSearch />
+        </div>
+
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
             <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
@@ -123,7 +186,7 @@ export default async function SegmentsPage({ searchParams }: SegmentsPageProps) 
                       Description
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Created
+                      Customers
                     </th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
@@ -131,16 +194,16 @@ export default async function SegmentsPage({ searchParams }: SegmentsPageProps) 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {segments.map((segment) => (
+                  {segments.map((segment, idx) => (
                     <tr key={segment.id}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                         {segment.name}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {segment.description || "-"}
+                        {segment.description || "No description"}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {new Date(segment.createdAt).toLocaleDateString()}
+                        {dynamicCustomerCounts[idx]}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <Link
@@ -157,33 +220,8 @@ export default async function SegmentsPage({ searchParams }: SegmentsPageProps) 
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-between">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <Link
-              href={`/dashboard/segments?page=${
-                page - 1
-              }&search=${search}&sort=${sort}`}
-              className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-                page === 1 ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              Previous
-            </Link>
-            <Link
-              href={`/dashboard/segments?page=${
-                page + 1
-              }&search=${search}&sort=${sort}`}
-              className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-                page === totalPages ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              Next
-            </Link>
-          </div>
+        {total > limit && (
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
               <p className="text-sm text-gray-700">
@@ -217,8 +255,8 @@ export default async function SegmentsPage({ searchParams }: SegmentsPageProps) 
               </nav>
             </div>
           </div>
-        </div>
-      )}
-    </DashboardLayout>
+        )}
+      </div>
+    </div>
   );
 } 

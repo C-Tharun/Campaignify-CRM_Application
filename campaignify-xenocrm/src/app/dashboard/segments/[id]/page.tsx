@@ -40,10 +40,63 @@ export default async function SegmentPage({ params }: SegmentPageProps) {
   // Parse rules and build dynamic where clause
   const rules = segment.rules as any;
   let customerWhere: any = null;
+  let orderCountRule: any = null;
+
+  // Field mapping from snake_case to camelCase
+  const fieldMap: Record<string, string> = {
+    total_spent: "totalSpent",
+    customer_spending: "totalSpent",
+    visit_count: "visitCount",
+    last_visit: "lastVisit",
+    country: "country",
+    name: "name",
+    email: "email",
+    "orders.count": "orders.count",
+    // add more as needed
+  };
 
   if (rules && Object.keys(rules).length > 0) {
-    // Support both old and new (AI-generated) rule formats
-    if (rules.rule && rules.rule.condition) {
+    // New array-based rules format
+    if (Array.isArray(rules.rules)) {
+      // Flatten rules: if a rule has 'action' and/or 'condition', treat each as a separate rule
+      const flatRules = [];
+      for (const rule of rules.rules) {
+        if (rule.action) flatRules.push(rule.action);
+        if (rule.condition) flatRules.push(rule.condition);
+        if (!rule.action && !rule.condition) flatRules.push(rule);
+      }
+      customerWhere = {};
+      for (const rule of flatRules) {
+        if (!rule.field || rule.value === undefined) continue;
+        const prismaField = fieldMap[rule.field] || rule.field;
+        if (prismaField === "orders.count") {
+          orderCountRule = { ...rule, field: prismaField };
+          continue;
+        }
+        switch (rule.operator) {
+          case "equals":
+            customerWhere[prismaField] = rule.value;
+            break;
+          case "greaterThan":
+            customerWhere[prismaField] = { gt: rule.value };
+            break;
+          case "greaterThanOrEqual":
+            customerWhere[prismaField] = { gte: rule.value };
+            break;
+          case "lessThan":
+            customerWhere[prismaField] = { lt: rule.value };
+            break;
+          case "lessThanOrEqual":
+            customerWhere[prismaField] = { lte: rule.value };
+            break;
+          case "contains":
+            customerWhere[prismaField] = { contains: rule.value };
+            break;
+          default:
+            customerWhere[prismaField] = rule.value;
+        }
+      }
+    } else if (rules.rule && rules.rule.condition) {
       const cond = rules.rule.condition;
       customerWhere = {};
       if (cond.customer_country) {
@@ -82,15 +135,47 @@ export default async function SegmentPage({ params }: SegmentPageProps) {
   // If no rules, return no customers
   let customers: any[] = [];
   if (customerWhere) {
-    customers = await prisma.customer.findMany({
-      where: customerWhere,
-      orderBy: { createdAt: "desc" },
-      include: {
-        _count: {
-          select: { orders: true },
+    let idFilter = undefined;
+    if (orderCountRule) {
+      // Use raw SQL to get customer IDs with order count filter (MySQL)
+      let sqlOp = '>=';
+      switch (orderCountRule.operator) {
+        case 'equals': sqlOp = '='; break;
+        case 'greaterThan': sqlOp = '>' ; break;
+        case 'greaterThanOrEqual': sqlOp = '>='; break;
+        case 'lessThan': sqlOp = '<'; break;
+        case 'lessThanOrEqual': sqlOp = '<='; break;
+      }
+      const minOrderCount = orderCountRule.value;
+      const customerIdsWithMinOrders = await prisma.$queryRawUnsafe(
+        `SELECT customerId FROM \`Order\` GROUP BY customerId HAVING COUNT(*) ${sqlOp} ?`,
+        minOrderCount
+      );
+      const matchingIds = customerIdsWithMinOrders.map(row => row.customerId);
+      if (matchingIds.length === 0) {
+        customers = [];
+      } else {
+        customers = await prisma.customer.findMany({
+          where: { ...customerWhere, id: { in: matchingIds } },
+          orderBy: { createdAt: "desc" },
+          include: {
+            _count: {
+              select: { orders: true },
+            },
+          },
+        });
+      }
+    } else {
+      customers = await prisma.customer.findMany({
+        where: customerWhere,
+        orderBy: { createdAt: "desc" },
+        include: {
+          _count: {
+            select: { orders: true },
+          },
         },
-      },
-    });
+      });
+    }
   }
 
   return (
