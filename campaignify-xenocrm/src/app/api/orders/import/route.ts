@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 
 const prisma = new PrismaClient();
@@ -72,7 +72,14 @@ export async function POST(request: Request) {
             customerId: customer.id,
             amount: parseFloat(record.amount),
             status: record.status,
-            items,
+            currency: record.currency || "USD",
+            items: {
+              create: items.map((item: any) => ({
+                productId: item.productId,
+                quantity: parseInt(item.quantity),
+                price: parseFloat(item.price),
+              })),
+            },
           },
         });
         results.created++;
