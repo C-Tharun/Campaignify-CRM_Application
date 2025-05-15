@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { parse } from "csv-parse/sync";
+import { syncCustomerStatsAndSegments } from "@/lib/services/customerSyncService";
 
 const prisma = new PrismaClient();
 
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
             },
           },
         });
+        await syncCustomerStatsAndSegments(customer.id);
         results.created++;
       } catch (error: any) {
         results.failed++;
