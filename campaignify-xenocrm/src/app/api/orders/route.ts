@@ -169,6 +169,7 @@ export async function GET(req: Request) {
     };
 
     // Get orders with pagination
+    // Get orders in chunks
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,

@@ -34,7 +34,8 @@ export async function POST(request: Request) {
       failed: 0,
       errors: [] as string[],
     };
-
+    // Batch processing of records
+    // Track progress during import
     for (const record of records) {
       try {
         if (!record.email) {
