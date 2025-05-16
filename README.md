@@ -52,8 +52,7 @@ A modern, AI-powered CRM platform for managing customer campaigns and segmentati
 - Intuitive campaign and segment management
 - Beautiful data visualization
 
-<img src="https://github.com/user-attachments/assets/2ae500e7-db30-4455-aa30-12786403f0d2" alt="Architecture Diagram" width="500"/>
-
+<img src="https://github.com/user-attachments/assets/2d3a57ce-f8d6-48f9-af6f-1b7de7ac0373" alt="Architecture Diagram" width="500"/>
 
 ## Tech Stack
 
