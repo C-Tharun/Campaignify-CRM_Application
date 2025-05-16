@@ -38,6 +38,7 @@ export async function POST(request: Request) {
     // Track progress during import
     for (const record of records) {
       try {
+        // Process each record
         if (!record.email) {
           throw new Error("Email is required");
         }

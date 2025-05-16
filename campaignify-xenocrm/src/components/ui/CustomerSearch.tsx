@@ -47,6 +47,7 @@ export default function CustomerSearch({ segments }: CustomerSearchProps) {
     [createQueryString, router]
   );
 
+  //Caching
   const debouncedSearch = useCallback((value: string) => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
