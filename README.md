@@ -52,6 +52,9 @@ A modern, AI-powered CRM platform for managing customer campaigns and segmentati
 - Intuitive campaign and segment management
 - Beautiful data visualization
 
+<img src="https://github.com/user-attachments/assets/2ae500e7-db30-4455-aa30-12786403f0d2" alt="Architecture Diagram" width="500"/>
+
+
 ## Tech Stack
 
 - *Frontend & Backend*: Next.js 14 (App Router)
@@ -71,14 +74,17 @@ A modern, AI-powered CRM platform for managing customer campaigns and segmentati
 - OpenRouter API key
 
 ### Environment Variables
-Create a .env file in the root directory:
-env
+
+Create a `.env` file in the root directory:
+
+```env
 DATABASE_URL="mysql://user:password@host:port/database"
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-nextauth-secret"
 OPENROUTER_API_KEY="your-openrouter-api-key"
+```
 
 
 ### Installation
@@ -107,9 +113,10 @@ npm run dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+
 ## Project Structure
 
-
+```text
 campaignify-xenocrm/
 ├── app/
 │   ├── api/           # API routes
@@ -119,9 +126,10 @@ campaignify-xenocrm/
 │   ├── segments/      # Segment pages
 │   └── layout.tsx     # Root layout
 ├── components/        # Reusable components
-├── lib/              # Utility functions
-├── prisma/           # Database schema
-└── public/           # Static assets
+├── lib/               # Utility functions
+├── prisma/            # Database schema
+└── public/            # Static assets
+```
 
 
 ## Database Schema
