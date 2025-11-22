@@ -1,4 +1,4 @@
-# Campaignify - Xeno CRM Platform
+# Campaignify - CRM Platform
 
 A modern CRM platform that enables customer segmentation, personalized campaign delivery, and intelligent insights.
 

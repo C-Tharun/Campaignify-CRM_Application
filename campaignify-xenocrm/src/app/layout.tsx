@@ -8,7 +8,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Campaignify - Xeno CRM Platform",
+  title: "Campaignify - CRM Platform",
   description: "A modern CRM platform for customer segmentation and campaign management",
 };
 

@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         headers: {
           "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "HTTP-Referer": "http://localhost:3000", // or your deployed domain
-          "X-Title": "Xeno CRM AI"
+          "X-Title": "CRM AI"
         },
       }
     );

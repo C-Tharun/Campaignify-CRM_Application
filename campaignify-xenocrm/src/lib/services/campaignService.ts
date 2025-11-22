@@ -76,7 +76,7 @@ export class CampaignService {
               headers: {
                 "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 "HTTP-Referer": "http://localhost:3000",
-                "X-Title": "Xeno CRM AI"
+                "X-Title": "CRM AI"
               },
             }
           );
